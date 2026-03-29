@@ -1,10 +1,12 @@
 # Avatar Toolkit
-### WE ARE MOVING AWAY FROM GITHUB TO DISROOT, NO FURTHER DEVELOPMENT WILL BE DONE ON GITHUB, ISSUES WILL BE ANSWERED UNTO THE 20TH OF JANURARY AFTER THE 20TH THE REPO WILL BE LOCKED, SEE THE NEW REPO HERE: https://git.disroot.org/Neoneko/Avatar-Toolkit
+We are aware the wiki is down and are working on a new one, please don't report this.
 
 ## Avatar Toolkit is in Alpha, There will be issues, please ensure you report them!. If using a Alpha plugin isn't your fancy you can find Cats Blender Plugin [HERE](https://github.com/unofficalcats/Cats-Blender-Plugin-Unofficial-)!
 #### Avatar Toolkit is in Alpha and will contain issues, please ensure you report them!
 
 Avatar Toolkit is a modern, Blender addon designed to streamline the process of preparing 3D avatars for virtual platforms including VRChat, ChilloutVR, Resonite, and other similar applications.
+
+# No longer maintained, neoneko has ceased all operations. 
 
 ## What is Avatar Toolkit?
 Avatar Toolkit simplifies the workflow for avatar creation and optimization by providing an all-in-one solution that:
