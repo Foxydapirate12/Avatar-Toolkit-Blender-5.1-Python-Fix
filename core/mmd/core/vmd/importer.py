@@ -17,7 +17,7 @@ from mathutils import Quaternion, Vector
 from ... import utils
 from .. import vmd
 from ..camera import MMDCamera
-from ..lamp import MMDLamp
+from ..light import MMDLight
 
 
 class _MirrorMapper:
@@ -258,13 +258,13 @@ class HasAnimationData:
 
 
 class VMDImporter:
-    def __init__(self, filepath, scale=1.0, bone_mapper=None, use_pose_mode=False, convert_mmd_camera=True, convert_mmd_lamp=True, frame_margin=5, use_mirror=False, use_NLA=False):
+    def __init__(self, filepath, scale=1.0, bone_mapper=None, use_pose_mode=False, detect_camera_changes=True, detect_light_changes=True, frame_margin=5, use_mirror=False, use_NLA=False):
         self.__vmdFile = vmd.File()
         self.__vmdFile.load(filepath=filepath)
         logger.debug(str(self.__vmdFile.header))
         self.__scale = scale
-        self.__convert_mmd_camera = convert_mmd_camera
-        self.__convert_mmd_lamp = convert_mmd_lamp
+        self.__detect_camera_changes = detect_camera_changes
+        self.__detect_light_changes = detect_light_changes
         self.__bone_mapper = bone_mapper
         self.__bone_util_cls = BoneConverterPoseMode if use_pose_mode else BoneConverter
         self.__frame_margin = frame_margin + 1
@@ -633,7 +633,7 @@ class VMDImporter:
         self.__assign_action(cameraObj, distance_action)
 
     @staticmethod
-    def detectLampChange(fcurve, threshold=0.1):
+    def detectLightChange(fcurve, threshold=0.1):
         frames = list(fcurve.keyframe_points)
         frameCount = len(frames)
         frames.sort(key=lambda x: x.co[0])
@@ -644,32 +644,32 @@ class VMDImporter:
                 if n.co[0] - f.co[0] <= 1.0 and abs(f.co[1] - n.co[1]) > threshold:
                     f.interpolation = "CONSTANT"
 
-    def __assignToLamp(self, lampObj, action_name=None):
-        mmdLampInstance = MMDLamp.convertToMMDLamp(lampObj, self.__scale)
-        mmdLamp = mmdLampInstance.object()
-        lampObj = mmdLampInstance.lamp()
+    def __assignToLight(self, lightObj, action_name=None):
+        mmdLightInstance = MMDLight.convertToMMDLight(lightObj, self.__scale)
+        mmdLight = mmdLightInstance.object()
+        lightObj = mmdLightInstance.light()
 
-        lampAnim = self.__vmdFile.lampAnimation
-        logger.info("(lamp) frames:%5d  name: %s", len(lampAnim), mmdLamp.name)
-        if len(lampAnim) < 1:
+        lightAnim = self.__vmdFile.lampAnimation
+        logger.info("(light) frames:%5d  name: %s", len(lightAnim), mmdLight.name)
+        if len(lightAnim) < 1:
             return
 
-        action_name = action_name or mmdLamp.name
+        action_name = action_name or mmdLight.name
         color_action = bpy.data.actions.new(name=action_name + "_color")
         location_action = bpy.data.actions.new(name=action_name + "_loc")
 
         _loc = _MirrorMapper.get_location if self.__mirror else lambda i: i
-        for keyFrame in lampAnim:
+        for keyFrame in lightAnim:
             frame = keyFrame.frame_number + self.__frame_margin
-            self.__keyframe_insert(color_action, "color", frame, Vector(keyFrame.color), lampObj)
-            self.__keyframe_insert(location_action, "location", frame, Vector(_loc(keyFrame.direction)).xzy * -1, mmdLamp)
+            self.__keyframe_insert(color_action, "color", frame, Vector(keyFrame.color), lightObj)
+            self.__keyframe_insert(location_action, "location", frame, Vector(_loc(keyFrame.direction)).xzy * -1, mmdLight)
 
-        location_channelbag = self.__get_channelbag(location_action, mmdLamp)
+        location_channelbag = self.__get_channelbag(location_action, mmdLight)
         for fcurve in location_channelbag.fcurves:
-            self.detectLampChange(fcurve)
+            self.detectLightChange(fcurve)
 
-        self.__assign_action(lampObj.data, color_action)
-        self.__assign_action(lampObj, location_action)
+        self.__assign_action(lightObj.data, color_action)
+        self.__assign_action(lightObj, location_action)
 
     def assign(self, obj, action_name=None):
         if obj is None:
@@ -679,16 +679,16 @@ class VMDImporter:
 
         if MMDCamera.isMMDCamera(obj):
             self.__assignToCamera(obj, action_name + "_camera")
-        elif MMDLamp.isMMDLamp(obj):
-            self.__assignToLamp(obj, action_name + "_lamp")
+        elif MMDLight.isMMDLight(obj):
+            self.__assignToLight(obj, action_name + "_light")
         elif getattr(obj.data, "shape_keys", None):
             self.__assignToMesh(obj, action_name + "_facial")
         elif obj.type == "ARMATURE":
             self.__assignToArmature(obj, action_name + "_bone")
-        elif obj.type == "CAMERA" and self.__convert_mmd_camera:
+        elif obj.type == "CAMERA" and self.__detect_camera_changes:
             self.__assignToCamera(obj, action_name + "_camera")
-        elif obj.type == "LAMP" and self.__convert_mmd_lamp:
-            self.__assignToLamp(obj, action_name + "_lamp")
+        elif obj.type == "LIGHT" and self.__detect_light_changes:
+            self.__assignToLight(obj, action_name + "_light")
         elif obj.mmd_type == "ROOT":
             self.__assignToRoot(obj, action_name + "_display")
         else:
